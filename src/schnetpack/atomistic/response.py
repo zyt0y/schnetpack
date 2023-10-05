@@ -26,6 +26,7 @@ class Forces(nn.Module):
         self,
         calc_forces: bool = True,
         calc_stress: bool = False,
+        retain_graph: Optional[bool] = None,
         energy_key: str = properties.energy,
         force_key: str = properties.forces,
         stress_key: str = properties.stress,
@@ -34,6 +35,7 @@ class Forces(nn.Module):
         Args:
             calc_forces: If True, calculate atomic forces.
             calc_stress: If True, calculate the stress tensor.
+            retain_graph: Set to True if an ensemble of Forces prediction is needed
             energy_key: Key of the energy in results.
             force_key: Key of the forces in results.
             stress_key: Key of the stress in results.
@@ -41,6 +43,7 @@ class Forces(nn.Module):
         super(Forces, self).__init__()
         self.calc_forces = calc_forces
         self.calc_stress = calc_stress
+        self.retain_graph = retain_graph
         self.energy_key = energy_key
         self.force_key = force_key
         self.stress_key = stress_key
@@ -65,6 +68,7 @@ class Forces(nn.Module):
             [inputs[prop] for prop in self.required_derivatives],
             grad_outputs=go,
             create_graph=self.training,
+            retain_graph=self.retain_graph
         )
 
         if self.calc_forces:
