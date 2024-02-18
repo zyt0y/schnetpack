@@ -50,17 +50,39 @@ class PaiNNInteraction(nn.Module):
         Returns:
             atom features after interaction
         """
+        print('PaiNNInteraction')
+        print(f'q.shape: {q.size()}')
+        print(f'mu.shape: {mu.size()}')
+        print(f'Wij.shape: {Wij.size()}')
+        print(f'dir_ij.shape: {dir_ij.size()}')
+        print(f'idx_i.shape: {idx_i.size()}')
+        print(f'idx_j.shape: {idx_j.size()}')
+
         # inter-atomic
         x = self.interatomic_context_net(q)
+        print(f'x.shape after interatomic_context_net(q): {x.size()}')
         xj = x[idx_j]
         muj = mu[idx_j]
         x = Wij * xj
+        print(f'xj.shape : {xj.size()}')
+        print(f'muj.shape : {muj.size()}')
+        print(f'x.shape : {x.size()}')
 
         dq, dmuR, dmumu = torch.split(x, self.n_atom_basis, dim=-1)
-        dq = snn.scatter_add(dq, idx_i, dim_size=n_atoms)
-        dmu = dmuR * dir_ij[..., None] + dmumu * muj
-        dmu = snn.scatter_add(dmu, idx_i, dim_size=n_atoms)
+        print(f'dq.shape : {dq.size()}')
+        print(f'dmuR.shape : {dmuR.size()}')
+        print(f'dmumu.shape : {dmumu.size()}')
 
+        dq = snn.scatter_add(dq, idx_i, dim_size=n_atoms)
+        print(f'dq.shape after snn.scatter_add : {dq.size()}')
+
+        dmu = dmuR * dir_ij[..., None] + dmumu * muj
+        print(f'dir_ij[..., None].shape : {dir_ij[..., None].size()}')
+        print(f'dmu.shape : {dmu.size()}')
+
+        dmu = snn.scatter_add(dmu, idx_i, dim_size=n_atoms)
+        print(f'dmu.shape after: snn.scatter_add {dmu.size()}')
+        print('\n')
         q = q + dq
         mu = mu + dmu
 
