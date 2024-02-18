@@ -226,6 +226,7 @@ class AddOffsets(Transform):
         zmax: int = 100,
         atomrefs: torch.Tensor = None,
         propery_mean: torch.Tensor = None,
+        n_models: int = 1
     ):
         """
         Args:
@@ -261,8 +262,13 @@ class AddOffsets(Transform):
 
         atomrefs = atomrefs or torch.zeros((zmax,))
         propery_mean = propery_mean or torch.zeros((1,))
+        #self.n_models = n_models
+        self.register_buffer("n_models", torch.Tensor([n_models]).to(torch.int8))
+
         self.register_buffer("atomref", atomrefs)
         self.register_buffer("mean", propery_mean)
+
+        
 
     def datamodule(self, value):
         if self.add_atomrefs and not self._atomrefs_initialized:
@@ -285,7 +291,18 @@ class AddOffsets(Transform):
                 if self.is_extensive
                 else self.mean
             )
-            inputs[self._property] += mean
+            #print(list(inputs.keys()), inputs['energy_0'], mean, self.atomref[inputs[structure.Z]])
+            if hasattr(self, 'n_models'):
+                if self.n_models == 1:
+                    inputs[self._property] += mean
+                else:
+                    for i in range(self.n_models):
+                        inputs[f'{self._property}_{i}'] += mean
+            else:
+                inputs[self._property] += mean
+            #inputs['energy_0'] += mean
+            #inputs['energy_1'] += mean
+            #inputs['energy_2'] += mean
 
         if self.add_atomrefs:
             idx_m = inputs[structure.idx_m]
@@ -297,6 +314,15 @@ class AddOffsets(Transform):
             if not self.is_extensive:
                 y0 /= inputs[structure.n_atoms]
 
-            inputs[self._property] += y0
-
+            if hasattr(self, 'n_models'):
+                if self.n_models == 1:
+                    inputs[self._property] += y0
+                else:
+                    for i in range(self.n_models):
+                        inputs[f'{self._property}_{i}'] += y0
+            else:
+                inputs[self._property] += y0
+            #inputs['energy_0'] += y0
+            #inputs['energy_1'] += y0
+            #inputs['energy_2'] += y0
         return inputs
